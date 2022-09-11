@@ -1,12 +1,45 @@
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = require('twilio')(accountSid, authToken);
+const express = require('express');
+const app = express();
+const port = 3000;
+var cors = require('cors');
+app.use(cors());
+app.use(express.json());
 
-client.verify.v2.services('VAb26fecfb757a17559ddd9249ca0aa86a')
-                .verifications
-                .create({channelConfiguration: {
-                   template_id: 'd-2aebc801db814ff2a385b5643f7fa712',
-                   from: 'bkeskin@ideacompiler.com',  
-                   from_name: 'test2'
-                 }, to: 'bilalkeskin_94@hotmail.com', channel: 'email'})
-                .then(verification => console.log(verification.sid)).catch(err => console.log(err));
+require('dotenv').config({ path: __dirname + '/.env' });
+const template = process.env.VERIFY_TEMPLATE_SID;
+const client = require('@sendgrid/mail');
+client.setApiKey(process.env.SENDGRID_API_KEY);
+
+// create a random 6 digit number
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000);
+}
+
+app.get('/api/v1/getcode/:email', (req, res) => {
+  const email = req.params.email;
+  let code = generateCode();
+  res.status(200).json({
+    status: 'success',
+    data: {
+      code,
+      email,
+      mail: client.send({
+        to: {
+          email,
+        },
+        from: {
+          email: 'bkeskin@ideacompiler.com',
+          name: 'bilal',
+        },
+        templateId: template,
+        dynamic_template_data: {
+          code,
+        },
+      }),
+    },
+  });
+});
+
+app.listen(port, () => {
+  console.log(`Server started on ${port}`);
+});
